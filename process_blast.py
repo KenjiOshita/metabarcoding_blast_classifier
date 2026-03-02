@@ -1,26 +1,40 @@
-import sys
 import pandas as pd
 
-if len(sys.argv) != 3:
-    print("Usage: python process_blast.py input.tsv output.csv")
-    sys.exit(1)
+input_file = #name change "blast_raw_yyyy.tsv"
+output_file = #name change "blast_processed_yyyy.csv"
 
-input_file = sys.argv[1]
-output_file = sys.argv[2]
+columns = [
+    "qseqid",
+    "sseqid",
+    "pident",
+    "length",
+    "evalue",
+    "bitscore",
+    "stitle",
+    "qlen"
+]
 
-df = pd.read_csv(input_file, sep="\t")
+df = pd.read_csv(input_file, sep="\t", header=None)
+df.columns = columns
 
-# taxonomy split
-tax_split = df["taxonomy_full"].str.split(";", expand=True)
+# Coverage (%)
+df["coverage_percent"] = (df["length"] / df["qlen"]) 
 
-df["domain"] = tax_split[0]
-df["supergroup"] = tax_split[1]
-df["clade"] = tax_split[2]
-df["phylum"] = tax_split[3]
-df["subphylum"] = tax_split[4]
-df["class"] = tax_split[5]
-df["genus"] = tax_split[7]
-df["species"] = tax_split[8]
+# Extract taxonomy string
+df["taxonomy_full"] = df["stitle"].str.split(" ", n=1).str[1]
+
+tax_lists = df["taxonomy_full"].str.split(";")
+
+# ---- Stable extraction ----
+
+# Species (last)
+df["species"] = tax_lists.str[-1]
+
+# Genus (second last if available)
+df["genus"] = tax_lists.apply(lambda x: x[-2] if len(x) >= 2 else None)
+
+# Phylum (4th position if available)
+df["phylum"] = tax_lists.apply(lambda x: x[3] if len(x) > 3 else None)
 
 df.to_csv(output_file, index=False)
 

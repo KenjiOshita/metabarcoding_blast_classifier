@@ -1,64 +1,64 @@
 import pandas as pd
 import os
+import sys
 
-# ==========================================
-# CONFIGURATION
-# ==========================================
-# Input: raw BLAST output (outfmt 6)
-# Output: Processed CSV with taxonomy separation
-INPUT_FILE = "blast_raw_2024.tsv"
-OUTPUT_FILE = "blast_processed_2024.csv"
+# ==============================================================================
+# Step 3: Taxonomy Processing
+# ==============================================================================
 
-def process_blast_taxonomy(input_path, output_path):
+def parse_silva_taxonomy(stitle):
     """
-    Parses BLAST results and extracts taxonomy levels (Phylum, Genus, Species)
-    specifically formatted for SILVA database headers.
+    Splits the SILVA header to extract the full taxonomy string, 
+    then identifies the Genus and Species.
+    Example: 'ID Eukaryota;SAR;...;Chaetoceros;Chaetoceros neogracilis'
     """
+    if pd.isna(stitle):
+        return None, None, None
     
-    # Define BLAST outfmt 6 columns used in the analysis
-    columns = [
-        "qseqid",    # Query Seq-id
-        "sseqid",    # Subject Seq-id
-        "pident",    # Percentage of identical matches
-        "length",    # Alignment length
-        "evalue",    # Expect value
-        "bitscore",  # Bit score
-        "stitle",    # Subject Title (Contains taxonomy)
-        "qlen"       # Query length
-    ]
+    # Split the title: [Accession ID] [Taxonomy String]
+    parts = str(stitle).split(" ", 1)
+    if len(parts) < 2:
+        return None, None, None
+    
+    tax_str = parts[1]
+    # Split by semicolon and remove empty elements
+    tax_list = [t.strip() for t in tax_str.split(";") if t.strip()]
+    
+    # Extract levels safely from the end of the list
+    # Species is the last element; Genus is the second to last.
+    species = tax_list[-1] if len(tax_list) >= 1 else None
+    genus = tax_list[-2] if len(tax_list) >= 2 else None
+    
+    return tax_str, genus, species
 
-    # Load the BLAST TSV file
-    if not os.path.exists(input_path):
-        print(f"Error: {input_path} not found.")
+def run_processing(year):
+    ## Your Work Place
+    input_file = f"## path/to/your/results/blast_raw_{year}.tsv"
+    output_file = f"## path/to/your/results/blast_processed_{year}.csv"
+
+    columns = ["qseqid", "sseqid", "pident", "length", "evalue", "bitscore", "stitle", "qlen"]
+
+    if not os.path.exists(input_file):
+        print(f"File not found: {input_file}")
         return
 
-    df = pd.read_csv(input_path, sep="\t", names=columns)
+    # Load data
+    df = pd.read_csv(input_file, sep="\t", names=columns)
 
-    # Calculate Query Coverage (%)
-    # Formula: (alignment length / total query length) * 100
-    df["coverage_percent"] = (df["length"] / df["qlen"]) * 100
+    # Calculate Coverage
+    df["coverage"] = df["length"] / df["qlen"]
 
-    # --- Taxonomy Extraction Logic ---
-    # SILVA headers usually follow the format: "Accession Taxonomy;String;..."
-    # We split by the first space to separate the Accession ID from the Taxonomy.
-    df["taxonomy_full"] = df["stitle"].str.split(" ", n=1).str[1]
+    # Apply taxonomy extraction
+    print("Extracting taxonomy...")
+    results = df["stitle"].apply(parse_silva_taxonomy)
+    df[["taxonomy_full", "genus", "species"]] = pd.DataFrame(results.tolist(), index=df.index)
 
-    # Split the taxonomy string by semicolon into a list, removing empty strings
-    tax_lists = df["taxonomy_full"].apply(lambda x: [t.strip() for t in str(x).split(";") if t.strip()])
-
-    # Extract specific levels safely:
-    # Species: Last element
-    df["species"] = tax_lists.apply(lambda x: x[-1] if len(x) >= 1 else None)
-    
-    # Genus: Second to last element
-    df["genus"] = tax_lists.apply(lambda x: x[-2] if len(x) >= 2 else None)
-    
-    # Phylum: 4th element (Index 3) in the SILVA hierarchy
-    df["phylum"] = tax_lists.apply(lambda x: x[3] if len(x) > 3 else None)
-
-    # Save results to a CSV file
-    df.to_csv(output_path, index=False)
-    print(f"Processing complete. Results saved to: {output_path}")
+    # Export to CSV
+    df.to_csv(output_file, index=False)
+    print(f"Success! Processed data saved to: {output_file}")
 
 if __name__ == "__main__":
-    process_blast_taxonomy(INPUT_FILE, OUTPUT_FILE)
+    if len(sys.argv) > 1:
+        run_processing(sys.argv[1])
+    else:
+        print("Usage: python process_blast.py [YEAR]")

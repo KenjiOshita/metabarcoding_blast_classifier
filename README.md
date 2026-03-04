@@ -1,109 +1,78 @@
-Metabarcoding BLAST Classifier
-
+Metabarcoding BLAST Classifier (SILVA-based)
 Overview
+This workflow performs taxonomic assignment of metabarcoding sequences using a locally constructed SILVA-based BLAST database. The pipeline is divided into three functional steps: database construction, sequence alignment, and taxonomy parsing.
 
-This script performs BLAST (blastn) searches for metabarcoding data and extracts selected taxonomic ranks from a semicolon-delimited taxonomy string (SILVA-style annotation assumed).
-It converts BLAST results into a taxonomy-resolved table suitable for downstream ecological or community analysis.
-________________________________________
-Expected Input
+Directory Structure and Setup
+Before execution, organize your workspace as follows:
 
-The script requires:
+## Project Root Directory
+├── scripts/
+│   ├── setup_db.sh
+│   ├── run_blast.sh
+│   └── process_blast.py
+├── databases/
+│   └── (SILVA FASTA file here)
+└── analysis/
+    └── [YEAR]/
+        └── repset[YEAR].fasta
+Note for WSL Users
+To prevent "Database memory map file error," do not perform database construction on a Windows-mounted drive (e.g., /mnt/c/). Use your Linux native home directory (~/) for the database location.
 
-・A query FASTA file
+Step 1: Database Construction
+This is a one-time setup to create a reusable BLAST database from the SILVA reference FASTA.
 
-・A BLAST database containing taxonomy information in sequence titles
+Open setup_db.sh and set the following paths:
 
-The BLAST database sequence titles must contain a semicolon-separated lineage string, for example:
+INPUT_FASTA: Path to your downloaded SILVA FASTA file.
 
-Eukaryota;SAR;Stramenopiles;Ochrophyta;Diatomea;Bacillariophytina;Mediophyceae;Chaetoceros;Chaetoceros neogracile
+DB_DIR: Directory where the BLAST index files will be stored.
 
-SILVA-like rank ordering is assumed.
-________________________________________
-BLAST Output Format
+Run the script:
 
-The script internally runs BLAST with:
--outfmt "6 qseqid sseqid pident length evalue bitscore stitle"
-The resulting raw BLAST table contains:
+Bash
+bash scripts/setup_db.sh
+This generates multiple index files (e.g., .nhr, .nin, .nsq). Once completed, this database can be referenced by any analysis for any year.
 
-・qseqid
-・sseqid
-・pident
-・length
-・evalue
-・bitscore
-・stitle
+Step 2: BLASTn Search
+Perform sequence alignment for a specific dataset.
 
-________________________________________
-Output
+Open run_blast.sh and set the DB_PATH to the location defined in Step 1.
 
-Two files are generated:
+Ensure your query FASTA is named repset[YEAR].fasta and placed in the corresponding year folder.
 
-1. Raw BLAST result
-output_prefix_raw.tsv
-2. Processed taxonomy table
-output_prefix_processed.csv
+Run the script by specifying the year:
 
-The processed file contains:
+Bash
+bash scripts/run_blast.sh 2025
+This generates a raw BLAST output: blast_raw_2025.tsv.
 
-・seqid
-・sseqid
-・pident
-・length
-・evalue
-・bitscore
-・stitle
-・phylum
-・genus
-・species
+Step 3: Taxonomy Processing
+Extract Genus and Species information from the BLAST results.
 
-Only phylum, genus, and species are extracted.
-Original BLAST columns are preserved.
-________________________________________
-Usage
+Run the Python script by specifying the year:
 
-Basic usage:
-python process_blast.py query.fasta database output_prefix
+Bash
+python scripts/process_blast.py 2025
+The script performs the following:
 
-Example:
-python process_blast.py ASV_2025.fasta silva_db results_2025
-________________________________________
+Extracts the full taxonomy string from the SILVA header.
+
+Identifies the last rank as Species and the second-to-last as Genus.
+
+Calculates query coverage.
+
+Saves the result as blast_processed_2025.csv.
+
 Requirements
+NCBI BLAST+: Must be accessible in your system PATH.
 
-・Python 3.9 or later
-・pandas
-・BLAST+ installed and accessible in PATH
+Python 3.9+
 
-Install dependency:
-pip install pandas
+pandas: Install via pip install pandas or pip install -r requirements.txt.
 
-Confirm BLAST installation:
-blastn -version
-________________________________________
-Notes and Assumptions
+Summary of Operations
+One-time: Build the database using setup_db.sh.
 
-・The taxonomy string must follow consistent rank ordering.
+Per Dataset: Execute run_blast.sh followed by process_blast.py.
 
-・Missing ranks may result in NA values.
-
-・Species-level annotations may include "uncultured", "environmental sample", or "sp." entries.
-
-・No best-hit filtering is performed.
-
-・No identity or coverage filtering is applied.
-________________________________________
-Limitations
-
-・Designed primarily for SILVA-style taxonomy strings.
-
-・Does not perform LCA or confidence-based classification.
-
-・Assumes fixed rank structure.
-________________________________________
-Recommended Workflow
-
-１．Prepare a BLAST database containing taxonomy in sequence titles.
-
-２．Run this script to perform BLAST and extract taxonomy.
-
-３．Perform filtering (identity threshold, coverage filtering, best-hit selection) downstream in R or Python.
-
+Downstream: Perform ecological filtering (identity/coverage thresholds) in R or Python using the generated CSV.

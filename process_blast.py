@@ -1,41 +1,64 @@
 import pandas as pd
+import os
 
-input_file = #name change "blast_raw_yyyy.tsv"
-output_file = #name change "blast_processed_yyyy.csv"
+# ==========================================
+# CONFIGURATION
+# ==========================================
+# Input: raw BLAST output (outfmt 6)
+# Output: Processed CSV with taxonomy separation
+INPUT_FILE = "blast_raw_2024.tsv"
+OUTPUT_FILE = "blast_processed_2024.csv"
 
-columns = [
-    "qseqid",
-    "sseqid",
-    "pident",
-    "length",
-    "evalue",
-    "bitscore",
-    "stitle",
-    "qlen"
-]
+def process_blast_taxonomy(input_path, output_path):
+    """
+    Parses BLAST results and extracts taxonomy levels (Phylum, Genus, Species)
+    specifically formatted for SILVA database headers.
+    """
+    
+    # Define BLAST outfmt 6 columns used in the analysis
+    columns = [
+        "qseqid",    # Query Seq-id
+        "sseqid",    # Subject Seq-id
+        "pident",    # Percentage of identical matches
+        "length",    # Alignment length
+        "evalue",    # Expect value
+        "bitscore",  # Bit score
+        "stitle",    # Subject Title (Contains taxonomy)
+        "qlen"       # Query length
+    ]
 
-df = pd.read_csv(input_file, sep="\t", header=None)
-df.columns = columns
+    # Load the BLAST TSV file
+    if not os.path.exists(input_path):
+        print(f"Error: {input_path} not found.")
+        return
 
-# Coverage (%)
-df["coverage_percent"] = (df["length"] / df["qlen"]) 
+    df = pd.read_csv(input_path, sep="\t", names=columns)
 
-# Extract taxonomy string
-df["taxonomy_full"] = df["stitle"].str.split(" ", n=1).str[1]
+    # Calculate Query Coverage (%)
+    # Formula: (alignment length / total query length) * 100
+    df["coverage_percent"] = (df["length"] / df["qlen"]) * 100
 
-tax_lists = df["taxonomy_full"].str.split(";")
+    # --- Taxonomy Extraction Logic ---
+    # SILVA headers usually follow the format: "Accession Taxonomy;String;..."
+    # We split by the first space to separate the Accession ID from the Taxonomy.
+    df["taxonomy_full"] = df["stitle"].str.split(" ", n=1).str[1]
 
-# ---- Stable extraction ----
+    # Split the taxonomy string by semicolon into a list, removing empty strings
+    tax_lists = df["taxonomy_full"].apply(lambda x: [t.strip() for t in str(x).split(";") if t.strip()])
 
-# Species (last)
-df["species"] = tax_lists.str[-1]
+    # Extract specific levels safely:
+    # Species: Last element
+    df["species"] = tax_lists.apply(lambda x: x[-1] if len(x) >= 1 else None)
+    
+    # Genus: Second to last element
+    df["genus"] = tax_lists.apply(lambda x: x[-2] if len(x) >= 2 else None)
+    
+    # Phylum: 4th element (Index 3) in the SILVA hierarchy
+    df["phylum"] = tax_lists.apply(lambda x: x[3] if len(x) > 3 else None)
 
-# Genus (second last if available)
-df["genus"] = tax_lists.apply(lambda x: x[-2] if len(x) >= 2 else None)
+    # Save results to a CSV file
+    df.to_csv(output_path, index=False)
+    print(f"Processing complete. Results saved to: {output_path}")
 
-# Phylum (4th position if available)
-df["phylum"] = tax_lists.apply(lambda x: x[3] if len(x) > 3 else None)
-
-df.to_csv(output_file, index=False)
-
-print("Processing complete.")
+if __name__ == "__main__":
+    process_blast_taxonomy(INPUT_FILE, OUTPUT_FILE)

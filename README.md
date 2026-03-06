@@ -1,147 +1,139 @@
 Metabarcoding BLAST Classifier (SILVA-based)
 このリポジトリは、メタバーコーディング解析で得られた配列データ（ASV/OTU）に対し、SILVAデータベースを用いて属・種レベルの系統分類を自動で行うためのツール一式です。
 
-0. 事前準備 (Preparation)
-解析を始める前に、以下のソフトウェアがインストールされていることを確認してください。
 
-NCBI BLAST+: blastn コマンドが使える状態。
-
-Python 3.9+: pandas ライブラリが必要です。
-
-Bash
-pip install pandas
-WSLユーザーへ:
-データベース作成は、Windows側のフォルダ（/mnt/c/...）ではなく、必ず Linux側のホームディレクトリ（~/） で行ってください。そうしないと、メモリ不足エラーで失敗します。
-
-1. フォルダ構成の推奨 
+1. フォルダ構成（推奨） 
 解析をスムーズに行うため、以下のようなフォルダ構成を推奨します。
 
-Plaintext
 my_project/
+
 ├── scripts/             # GitHubからダウンロードしたスクリプト
+
 │   ├── setup_db.sh
+
 │   ├── run_blast.sh
+
 │   └── process_blast.py
+
 ├── databases/           # SILVAの巨大なデータを入れる場所
+
 └── analysis/            # 自分の解析データを入れる場所
-    └── 2025/
-        └── repset_16S_2025.fasta
-2. 【Step 1】 データベースの構築 ＊1回のみ実行
-SILVAのFASTAファイルを、BLASTが高速検索できる形式に変換します。
+
+    └── Obama_2025_18S/
+    
+        └── repset.fasta # FASTA形式のファイル名は全て同一にしてください。
+    
+    └── Obama_2024_18S/
+    
+        └── repset.fasta
+
+        
+2. データベースの構築 ＊1回のみ実行
+
+SILVAのFASTAファイルを、BLAST検索できる形式に変換します。
 
 操作手順：
 SILVA公式サイトから SILVA_XXX_SSURef_NR99_tax_silva.fasta をダウンロードし、databases/ フォルダに置きます。
 
-setup_db.sh を開き、上部のパス設定を自分の環境に書き換えます。
+1. セットアップ手順（初回、またはDB更新時のみ）
+   
+ターミナルを立ち上げたら、まずは作業ディレクトリに移動して環境を整えます。
 
-ターミナルで実行：
+① ディレクトリへの移動と仮想環境の起動
 
 Bash
+# 作業ディレクトリへ移動
+
+cd "/mnt/c/Users/kenzi/Desktop/Taxonomic_classification"
+
+# 仮想環境の作成（初回のみ）
+
+# python3 -m venv venv
+
+# 仮想環境の起動（解析を始める時は必ず実行）
+
+source venv/bin/activate
+
+# 必要なライブラリのインストール(初回のみ)
+
+# pip install pandas
+
+
+② SILVAデータベースの準備
+
+SILVAの公式サイトからダウンロードしたファイルは .gz 形式で圧縮されています。BLASTではそのまま使えないため、必ず解凍してください。
+
+Bash
+# databaseフォルダへ移動
+
+cd database
+
+# ファイルを解凍（.gz を消して .fasta にする）
+
+gunzip SILVA_138.2_SSURef_NR99_tax_silva.fasta.gz
+
+# 元の場所に戻る
+cd  "/mnt/c/Users/kenzi/Desktop/Taxonomic_classification"
+
+③ データベースの構築（インデックス作成）
+
+一度構築すれば、他の解析にもずっと使い回せます。
+
+Bash
+# scripts/setup_db.sh 内のパスが正しいか確認してから実行
+
 bash scripts/setup_db.sh
-スクリプト修正版 (setup_db.sh):
-Bash
-#!/bin/bash
-# --- Settings ---
-# WSLユーザーは必ず ~/ 以下のパスを指定してください
-DB_DIR="$HOME/databases/silva"
-INPUT_FASTA="$HOME/databases/SILVA_138.2_SSURef_NR99_tax_silva.fasta"
-DB_NAME="$DB_DIR/SILVA_138_NR99"
 
-# --- Process ---
-mkdir -p "$DB_DIR"
-makeblastdb -in "$INPUT_FASTA" -dbtype nucl -out "$DB_NAME"
-3. 【Step 2】 BLAST検索の実行
-自分の配列データ（Query）を、Step 1で作ったデータベースに照らし合わせます。
+成功のサイン: Adding sequences from FASTA; added 510495 sequences... と表示されれば完了です。
 
-操作手順：
-解析したいファイルを analysis/2025/ などに配置します。
 
-run_blast.sh を実行します。この際、**「年度」と「ファイル名の接頭辞」**を引数として渡せるように改良しました。
+2. 解析の実行手順（新しいデータが来るたびに実行）
+   
+解析したいデータ（ファイルの例：Obama_2024_16S内にrepset.fasta）がある場合の手順です。
 
-例：repset_16S_2025.fasta を解析する場合
+ルール
+
+analysis/ の中にプロジェクトごとのフォルダを作る。
+
+入力ファイル名は必ず repset.fasta に統一する。
+
+実行コマンド例
 
 Bash
-bash scripts/run_blast.sh 2025 repset_16S
-スクリプト修正版 (run_blast.sh):
-Bash
-#!/bin/bash
-YEAR=$1
-PREFIX=${2:-"repset"} # 第2引数がない場合はデフォルトで "repset"
+# 1. BLAST検索の実行
 
-# --- Settings ---
-# Step 1で作ったDBの場所を指定
-DB_PATH="$HOME/databases/silva/SILVA_138_NR99"
-# 自分の解析フォルダの場所を指定
-WORK_DIR="/mnt/c/Users/YourName/Desktop/Project/analysis/${YEAR}"
+# 指定したフォルダ内の repset.fasta を読み込み、blast_raw.tsv を出力します。
 
-# --- Process ---
-cd "$WORK_DIR" || exit
-blastn \
-    -query "${PREFIX}_${YEAR}.fasta" \
-    -db "$DB_PATH" \
-    -out "blast_raw_${YEAR}.tsv" \
-    -outfmt "6 qseqid sseqid pident length evalue bitscore stitle qlen" \
-    -max_target_seqs 100 \
-    -perc_identity 95 \
-    -num_threads 4
-4. 【Step 3】  Taxoの形成とCSV出力
-BLASTの結果から「属（Genus）」と「種（Species）」を抽出し、見やすい表（CSV）にします。
+bash scripts/run_blast.sh analysis/Obama_2024_16S
+#一番最後のanalysis/Obama_2024_16Sを適宜変更すること。
 
-操作手順：
-仮想環境を使っている場合は source venv/bin/activate などで起動します。
+# 2. タクソノミー整形の実行
 
-Pythonスクリプトを実行します。
+# blast_raw.tsv を読み込み、属・種を抽出した repset.csv を出力します。
+
+python scripts/process_blast.py analysis/Obama_2024_16S
+
+
+
+【実際の操作シミュレーション】（ターミナル起動後）
 
 Bash
-python scripts/process_blast.py 2025
-スクリプト修正版 (process_blast.py):
-※パスをスクリプト冒頭で一括管理できるように改良しました。
 
-Python
-import pandas as pd
-import os
-import sys
+# 1. 起動と移動
 
-# --- Settings ---
-# ここを自分の環境に合わせて書き換えてください
-BASE_DIR = "/mnt/c/Users/YourName/Desktop/Project/analysis"
+cd "/mnt/c/Users/kenzi/Desktop/Taxonomic_classification"
 
-def parse_silva_taxonomy(stitle):
-    if pd.isna(stitle): return None, None, None
-    parts = str(stitle).split(" ", 1)
-    if len(parts) < 2: return None, None, None
-    
-    tax_str = parts[1]
-    tax_list = [t.strip() for t in tax_str.split(";") if t.strip()]
-    
-    species = tax_list[-1] if len(tax_list) >= 1 else None
-    genus = tax_list[-2] if len(tax_list) >= 2 else None
-    return tax_str, genus, species
+# 2. 仮想環境
 
-def run_processing(year):
-    work_dir = os.path.join(BASE_DIR, str(year))
-    input_file = os.path.join(work_dir, f"blast_raw_{year}.tsv")
-    output_file = os.path.join(work_dir, f"blast_processed_{year}.csv")
+source venv/bin/activate
 
-    if not os.path.exists(input_file):
-        print(f"File not found: {input_file}")
-        return
+# 3. 解析（フォルダ名を変えること）
 
-    columns = ["qseqid", "sseqid", "pident", "length", "evalue", "bitscore", "stitle", "qlen"]
-    df = pd.read_csv(input_file, sep="\t", names=columns)
-    df["coverage"] = df["length"] / df["qlen"]
+bash scripts/run_blast.sh analysis/Obama_2024_16S
 
-    print(f"Processing Year {year}...")
-    results = df["stitle"].apply(parse_silva_taxonomy)
-    df[["taxonomy_full", "genus", "species"]] = pd.DataFrame(results.tolist(), index=df.index)
+python scripts/process_blast.py analysis/Obama_2024_16S
 
-    df.to_csv(output_file, index=False)
-    print(f"Completed! Output: {output_file}")
-
-if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        run_processing(sys.argv[1])
-    else:
-        print("Usage: python process_blast.py [YEAR]")
+# 4. 終わったら仮想環境を抜ける
+deactivate
 
 

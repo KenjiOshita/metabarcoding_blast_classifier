@@ -25,3 +25,16 @@ makeblastdb \
     -out "$DB_NAME"
 
 echo "Setup complete. Database is located at: $DB_NAME"
+
+＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃
+
+#!/bin/bash
+# --- Settings ---
+# WSLユーザーは必ず ~/ 以下のパスを指定してください
+DB_DIR="$HOME/databases/silva"
+INPUT_FASTA="$HOME/databases/SILVA_138.2_SSURef_NR99_tax_silva.fasta"
+DB_NAME="$DB_DIR/SILVA_138_NR99"
+
+# --- Process ---
+mkdir -p "$DB_DIR"
+makeblastdb -in "$INPUT_FASTA" -dbtype nucl -out "$DB_NAME"

@@ -1,4 +1,4 @@
-Metabarcoding BLAST Classifier (SILVA-based)
+# Metabarcoding BLAST Classifier (SILVA-based)
 
 
 このリポジトリは、メタバーコーディング解析で得られた配列データ（ASV/OTU）に対し、SILVAデータベースを用いて属・種レベルの系統分類を自動で行うためのツール一式です。
@@ -43,33 +43,40 @@ SILVA公式サイトから SILVA_XXX_SSURef_NR99_tax_silva.fasta をダウンロ
 ① ディレクトリへの移動と仮想環境の起動
 
 Bash
-# 作業ディレクトリへ移動
+
+作業ディレクトリへ移動
 
 cd "/mnt/c/Users/kenzi/Desktop/Taxonomic_classification"
-# 仮想環境の作成（初回のみ）
-# python3 -m venv venv
 
-# 仮想環境の起動（解析を始める時は必ず実行）
+仮想環境の作成（初回のみ）
+#python3 -m venv venv
+
+仮想環境の起動（解析を始める時は必ず実行）
 source venv/bin/activate
 
-# 必要なライブラリのインストール(初回のみ)
-# pip install pandas
+必要なライブラリのインストール(初回のみ)
+#pip install pandas
 
 ② SILVAデータベースの準備
 
 SILVAの公式サイトからダウンロードしたファイルは .gz 形式で圧縮されています。BLASTではそのまま使えないため、必ず解凍してください。
 
 Bash
-# databaseフォルダへ移動
+
+databaseフォルダへ移動
 cd database
-# ファイルを解凍（.gz を消して .fasta にする）
+
+ファイルを解凍（.gz を消して .fasta にする）
 gunzip SILVA_138.2_SSURef_NR99_tax_silva.fasta.gz
-# 元の場所に戻る
+
+元の場所に戻る
 cd  "/mnt/c/Users/kenzi/Desktop/Taxonomic_classification"
+
 ③ データベースの構築（インデックス作成）
 一度構築すれば、他の解析にもずっと使い回せます。
 Bash
-# scripts/setup_db.sh 内のパスが正しいか確認してから実行
+
+scripts/setup_db.sh 内のパスが正しいか確認してから実行
 bash scripts/setup_db.sh
 
 2. 解析の実行手順（新しいデータが来るたびに実行）
@@ -82,34 +89,40 @@ analysis/ の中にプロジェクトごとのフォルダを作る。
 
 実行コマンド例
 Bash
-# 1. BLAST検索の実行
-# 指定したフォルダ内の repset.fasta を読み込み、blast_raw.tsv を出力します。
+ 1. BLAST検索の実行
+    
+指定したフォルダ内の repset.fasta を読み込み、blast_raw.tsv を出力します。
 
 bash scripts/run_blast.sh analysis/Obama_2024_16S
 #一番最後のanalysis/Obama_2024_16Sを適宜変更すること。
 
-# 2. タクソノミー整形の実行
-# blast_raw.tsv を読み込み、属・種を抽出した repset.csv を出力します。
+
+2. タクソノミー整形の実行
+
+blast_raw.tsv を読み込み、属・種を抽出した repset.csv を出力します。
 
 python scripts/process_blast.py analysis/Obama_2024_16S
 
 
-【実際の操作シミュレーション】（ターミナル起動後）
+# 【実際の操作シミュレーション】（ターミナル起動後）
 
 Bash
-# 1. 起動と移動
+
+1. 起動と移動
 
 cd "/mnt/c/Users/kenzi/Desktop/Taxonomic_classification"
-# 2. 仮想環境
+
+2. 仮想環境
 
 source venv/bin/activate
-# 3. 解析（フォルダ名を変えること）
+
+3. 解析（フォルダ名を変えること）
 
 bash scripts/run_blast.sh analysis/Obama_2024_16S
 
 python scripts/process_blast.py analysis/Obama_2024_16S
 
-# 4. 終わったら仮想環境を抜ける
+4. 終わったら仮想環境を抜ける
 deactivate
 
 

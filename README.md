@@ -97,7 +97,9 @@ Bash
 Reads repset.fasta from the specified folder and outputs blast_raw.tsv.
 
 bash scripts/run_blast.sh analysis/Obama_2024_16S
-# Replace the final analysis/Obama_2024_16S as appropriate.
+
+
+Replace the final analysis/Obama_2024_16S as appropriate.
 
 
 2. Run taxonomy formatting
@@ -123,7 +125,7 @@ source venv/bin/activate
 
 bash scripts/run_blast.sh analysis/Obama_2024_16S
 
-python scripts/process_blast.py analysis/Obama_2024_16S
+python3 scripts/process_blast.py analysis/Obama_2024_16S
 
 4. Exit virtual environment upon completion
 deactivate
@@ -256,7 +258,7 @@ source venv/bin/activate
 
 bash scripts/run_blast.sh analysis/Obama_2024_16S
 
-python scripts/process_blast.py analysis/Obama_2024_16S
+python3 scripts/process_blast.py analysis/Obama_2024_16S
 
 4. 終わったら仮想環境を抜ける
 deactivate

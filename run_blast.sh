@@ -2,32 +2,30 @@
 
 # ==============================================================================
 # Step 2: BLASTn Search
-# ==============================================================================
-# Usage: ./run_blast.sh 2025
+# Usage: bash scripts/run_blast.sh analysis/Obama_2024_16S
 # ==============================================================================
 
-YEAR=$1
+PROJECT_DIR=$1
 
-if [ -z "$YEAR" ]; then
-    echo "Error: Please provide a year (e.g., ./run_blast.sh 2025)"
+if [ -z "$PROJECT_DIR" ]; then
+    echo "Error: Please specify the project directory (e.g., analysis/Obama_2024_16S)"
     exit 1
 fi
 
-## Your Analysis Workspace
-WORK_DIR="## path/to/your/analysis_folder/$YEAR"
-DB_PATH="## path/to/your/db_directory/SILVA_138_NR99"
+# --- [USER EDIT] ---
+# Step 1 で指定したDBのパスをここに記入
+DB_PATH="$HOME/databases/silva/SILVA_138_NR99"
+# -------------------
 
-cd "$WORK_DIR" || exit
-
-echo "Starting BLASTn for $YEAR..."
+echo "Running BLAST for: $PROJECT_DIR"
 
 blastn \
-    -query "repset${YEAR}.fasta" \
+    -query "${PROJECT_DIR}/repset.fasta" \
     -db "$DB_PATH" \
-    -out "blast_raw_${YEAR}.tsv" \
+    -out "${PROJECT_DIR}/blast_raw.tsv" \
     -outfmt "6 qseqid sseqid pident length evalue bitscore stitle qlen" \
     -max_target_seqs 100 \
     -perc_identity 95 \
     -num_threads 4
 
-echo "Search finished. Output: blast_raw_${YEAR}.tsv"
+echo "Search finished. Results saved in ${PROJECT_DIR}/blast_raw.tsv"

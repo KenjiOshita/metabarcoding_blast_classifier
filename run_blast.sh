@@ -14,7 +14,7 @@ fi
 
 # --- [USER EDIT] ---
 # Step 1 で指定したDBのパスをここに記入
-DB_PATH="$HOME/databases/silva/SILVA_138_NR99"
+DB_PATH="$HOME/database/silva/SILVA_138_NR99"
 # -------------------
 
 echo "Running BLAST for: $PROJECT_DIR"

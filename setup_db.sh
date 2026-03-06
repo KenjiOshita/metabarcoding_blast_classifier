@@ -3,8 +3,8 @@
 
 # --- [修正箇所] ---
 # パス全体を " " で囲んでください
-INPUT_FASTA="/mnt/c/Users/kenzi/Desktop/Taxonomic classification/database/SILVA_138.2_SSURef_NR99_tax_silva.fasta"
-DB_DIR="$HOME/databases/silva"
+INPUT_FASTA="/mnt/c/Users/kenzi/Desktop/Taxonomic_classification/database/SILVA_138.2_SSURef_NR99_tax_silva.fasta"
+DB_DIR="$HOME/database/silva"
 # -----------------
 
 DB_NAME="$DB_DIR/SILVA_138_NR99"

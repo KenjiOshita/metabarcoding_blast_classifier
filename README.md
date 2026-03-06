@@ -1,5 +1,141 @@
 # Metabarcoding BLAST Classifier (SILVA-based)
 
+This repository provides a suite of tools for automatically performing taxonomic classification at the genus and species levels using the SILVA database on sequence data (ASVs/OTUs) obtained from metabarcoding analyses.
+
+1. Folder Structure (Recommended)
+To ensure smooth processing, the following folder structure is recommended:
+
+my_project/
+
+├── scripts/             # Scripts downloaded from GitHub
+
+│   ├── setup_db.sh
+
+│   ├── run_blast.sh
+
+│   └── process_blast.py
+
+├── databases/           # Location for storing the large SILVA dataset
+
+└── analysis/            # Location for storing your analysis data
+
+ └── Obama_2025_18S/
+    
+   └── repset.fasta # Ensure all FASTA filenames are identical.
+    
+　└── Obama_2024_18S/
+
+　　 └── repset.fasta
+
+   
+2. Database Construction ＊Run only once
+
+Converts SILVA FASTA files into a format suitable for BLAST searches.
+
+Procedure:
+Download SILVA_XXX_SSURef_NR99_tax_silva.fasta from the official SILVA website and place it in the databases/ folder.
+
+1. Setup Procedure (First time only, or when updating the DB)
+   
+After launching the terminal, first navigate to the working directory and set up the environment.
+
+① Navigating to the directory and activating the virtual environment
+
+Bash
+
+Navigate to the working directory
+
+cd ‘/mnt/c/Users/kenzi/Desktop/Taxonomic_classification’
+
+Create the virtual environment (only on the first run)
+#python3 -m venv venv
+
+Activate the virtual environment (must be run before starting analysis)
+source venv/bin/activate
+
+Install required libraries (first time only)
+#pip install pandas
+
+
+
+Translated with DeepL.com (free version)
+
+② Preparing the SILVA Database
+
+Files downloaded from the official SILVA website are compressed in .gz format. As BLAST cannot use them directly, you must decompress them.
+
+Bash
+
+Navigate to the database folder
+cd database
+
+Decompress the file (remove the .gz extension to create a .fasta file)
+gunzip SILVA_138.2_SSURef_NR99_tax_silva.fasta.gz
+
+Return to original location
+cd ‘/mnt/c/Users/kenzi/Desktop/Taxonomic_classification’
+
+③ Database Construction (Index Creation)
+Once constructed, it can be reused indefinitely for other analyses.
+Bash
+
+Verify paths within scripts/setup_db.sh are correct before execution
+bash scripts/setup_db.sh
+
+2. Analysis execution procedure (run each time new data arrives)  
+   
+Procedure when you have data to analyse (e.g., repset.fasta within Obama_2024_16S).  
+
+Rules  
+Create a project-specific folder within analysis/.  
+Input filenames must be uniformly named repset.fasta.
+
+Example Execution Commands
+Bash
+ 1. Run BLAST Search
+    
+Reads repset.fasta from the specified folder and outputs blast_raw.tsv.
+
+bash scripts/run_blast.sh analysis/Obama_2024_16S
+# Replace the final analysis/Obama_2024_16S as appropriate.
+
+
+2. Run taxonomy formatting
+
+Reads blast_raw.tsv and outputs repset.csv containing extracted genus and species.
+
+python scripts/process_blast.py analysis/Obama_2024_16S
+
+
+# 【Simulated actual operation】 (After launching terminal)
+
+Bash
+
+1. Launch and navigate
+
+cd ‘/mnt/c/Users/kenzi/Desktop/Taxonomic_classification’
+
+2. Virtual environment
+
+source venv/bin/activate
+
+3. Analysis (change folder name)
+
+bash scripts/run_blast.sh analysis/Obama_2024_16S
+
+python scripts/process_blast.py analysis/Obama_2024_16S
+
+4. Exit virtual environment upon completion
+deactivate
+
+
+
+
+Translated with DeepL.com (free version)
+
+
+# Metabarcoding BLAST Classifier (SILVA-based)
+
 
 このリポジトリは、メタバーコーディング解析で得られた配列データ（ASV/OTU）に対し、SILVAデータベースを用いて属・種レベルの系統分類を自動で行うためのツール一式です。
 
